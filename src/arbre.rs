@@ -66,6 +66,29 @@ impl RacineNode{
         }
 
     }
+    pub fn insert_node(&mut self, ch : [char;3]){
+        let cmp = morphologic_cmp(self.racine, ch) ; 
+        if cmp == 1 {
+            if self.right.is_none() {
+                self.right = Some(Box::new(RacineNode::new(ch)));
+            }
+            else{
+                self.right.as_mut().unwrap().insert_node(ch);
+            }
+            
+        }
+        else{
+            if cmp == 0 { return }
+            else {
+                if self.left.is_none(){
+                    self.left = Some(Box::new(RacineNode::new(ch)));
+                }
+                else {
+                    self.left.as_mut().unwrap().insert_node(ch);
+                }
+            }
+        }
+    }
 }
 impl Tree {
     pub fn new() -> Self { 
@@ -78,5 +101,12 @@ impl Tree {
         let node = self.racine.as_ref().unwrap() ; 
         return node.verify_node(ch) ; 
 
+    }
+    pub fn insert(&mut self, ch : [char;3]){
+        if self.racine.is_none(){
+            self.racine = Some(Box::new(RacineNode::new(ch))) ; 
+            return ;
+        }
+        self.racine.as_mut().unwrap().insert_node(ch) ; 
     }
 }
