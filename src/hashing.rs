@@ -1,5 +1,5 @@
 // Structure du schème
-
+#[derive(Clone)]
 pub struct Scheme {
     pub nom: String,
     pub pattern: String,
@@ -105,6 +105,31 @@ impl SchemeTable {
             }
         }
         println!("Total: {} schèmes", count);
+    }
+
+    // Supprimer un schème par sa clé - O(1)
+    // Retourne true si le schème a été trouvé et supprimé, false sinon
+    pub fn delete(&mut self, key: &str) -> bool {
+        let mut index = self.hash1(key);
+        let step = self.hash2(key);
+
+        // Parcourir la table pour trouver la clé
+        for _ in 0..self.size {
+            match &self.table[index] {
+                None => return false, // case vide → la clé n'existe pas
+                Some((existing_key, _)) => {
+                    if existing_key == key {
+                        // Trouvé ! On met la case à None
+                        self.table[index] = None;
+                        println!("Schème '{}' supprimé.", key);
+                        return true;
+                    }
+                    // Pas la bonne clé, continuer avec le double hashing
+                    index = (index + step) % self.size;
+                }
+            }
+        }
+        false // pas trouvé après avoir parcouru toute la table
     }
 
     // Obtenir tous les schèmes
