@@ -104,3 +104,64 @@ pub fn afficher_validation(mot: &str, racine: [char; 3], schemes: &[(&str, &str)
         println!("✗ NON : '{}' n'appartient pas à la racine '{}'", mot, r);
     }
 }
+
+// ========================================================
+// GESTION DES DÉRIVÉS VALIDÉS (lien arbre ↔ dérivation)
+// ========================================================
+
+use crate::arbre::Tree;
+
+// Générer tous les dérivés d'une racine ET les stocker dans l'arbre
+// Retourne le nombre de dérivés ajoutés
+pub fn generer_et_stocker(arbre: &mut Tree, racine: [char; 3], schemes: &[(&str, &str)]) -> u32 {
+    let mut compteur: u32 = 0;
+
+    // Pour chaque schème, on génère le mot et on le stocke dans l'arbre
+    for (nom_scheme, _description) in schemes {
+        let mot = generer_mot(racine, nom_scheme);
+
+        // Stocker dans le nœud de la racine dans l'arbre
+        let ok = arbre.ajouter_derive(racine, mot.clone(), nom_scheme.to_string());
+        if ok {
+            compteur = compteur + 1;
+        }
+    }
+
+    let r: String = racine.iter().collect();
+    println!(
+        "{} dérivés générés et stockés pour la racine '{}'",
+        compteur, r
+    );
+    compteur
+}
+
+// Valider un mot ET le stocker si valide
+// Retourne (trouvé, schème trouvé)
+pub fn valider_et_stocker(
+    arbre: &mut Tree,
+    mot: &str,
+    racine: [char; 3],
+    schemes: &[(&str, &str)],
+) -> (bool, Option<String>) {
+    let (trouve, scheme) = valider_mot(mot, racine, schemes);
+
+    if trouve {
+        // Le mot est valide → on le stocke dans l'arbre
+        let schema = scheme.clone().unwrap();
+        arbre.ajouter_derive(racine, mot.to_string(), schema);
+    }
+
+    (trouve, scheme)
+}
+
+// Afficher les dérivés stockés pour une racine dans l'arbre
+pub fn afficher_derives_stockes(arbre: &mut Tree, racine: [char; 3]) {
+    let noeud = arbre.chercher_noeud(racine);
+    match noeud {
+        Some(n) => n.afficher_derives(),
+        None => {
+            let r: String = racine.iter().collect();
+            println!("Racine '{}' non trouvée dans l'arbre.", r);
+        }
+    }
+}
