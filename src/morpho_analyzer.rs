@@ -48,12 +48,15 @@ pub fn generer_famille(racine: [char; 3], table: &SchemeTable) -> Vec<(String, S
 // Afficher toute la famille morphologique d'une racine
 pub fn afficher_famille(racine: [char; 3], table: &SchemeTable) {
     let r: String = racine.iter().collect();
-    println!("=== Famille morphologique de {} ===", r);
+    let r_display: String = r.chars().rev().collect();
+    println!("=== Famille morphologique de {} ===", r_display);
 
     let famille = generer_famille(racine, table);
 
     for (scheme, mot) in &famille {
-        println!("  {} → {}", scheme, mot);
+        let scheme_display: String = scheme.chars().rev().collect();
+        let mot_display: String = mot.chars().rev().collect();
+        println!("  {} → {}", scheme_display, mot_display);
     }
 
     println!("Total: {} dérivés", famille.len());
@@ -89,6 +92,7 @@ pub fn valider_mot(mot: &str, racine: [char; 3], table: &SchemeTable) -> (bool, 
 }
 
 // Version avec affichage : vérifie et affiche le résultat
+#[allow(dead_code)]
 pub fn afficher_validation(mot: &str, racine: [char; 3], table: &SchemeTable) {
     let r: String = racine.iter().collect();
     let (trouve, scheme) = valider_mot(mot, racine, table);

@@ -2,6 +2,7 @@
 #[derive(Clone)]
 pub struct Scheme {
     pub nom: String,
+    #[allow(dead_code)]
     pub pattern: String,
     pub description: String,
 }

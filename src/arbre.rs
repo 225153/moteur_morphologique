@@ -61,6 +61,17 @@ impl RacineNode {
         self.frequence = self.frequence + 1;
     }
 
+    // Supprimer un dérivé spécifique de ce nœud
+    pub fn supprimer_derive(&mut self, mot: &str) -> bool {
+        // Chercher le dérivé par son mot
+        if let Some(pos) = self.derives.iter().position(|d| d.mot == mot) {
+            self.derives.remove(pos);
+            self.frequence = self.frequence - 1;
+            return true;
+        }
+        false // Dérivé non trouvé
+    }
+
     // Afficher tous les dérivés de cette racine
     pub fn afficher_derives(&self) {
         let r: String = self.racine.iter().collect();
@@ -154,6 +165,59 @@ impl Tree {
             return;
         }
         self.racine.as_mut().unwrap().insert_node(ch);
+    }
+
+    // Supprimer une racine de l'arbre
+    pub fn delete(&mut self, ch: [char; 3]) -> bool {
+        // Fonction auxiliaire récursive pour supprimer un noeud
+        fn delete_node(node: &mut Option<Box<RacineNode>>, ch: [char; 3]) -> bool {
+            if let Some(mut current) = node.take() {
+                let cmp = morphologic_cmp(current.racine, ch);
+
+                if cmp == 0 {
+                    // Noeud trouvé, gérer les 3 cas de suppression
+                    *node = match (current.left.take(), current.right.take()) {
+                        (None, None) => None,               // Cas 1: aucun enfant
+                        (Some(left), None) => Some(left),   // Cas 2: uniquement enfant gauche
+                        (None, Some(right)) => Some(right), // Cas 2: uniquement enfant droit
+                        (Some(left), Some(right)) => {
+                            // Cas 3: deux enfants - remplacer par le successeur (min du sous-arbre droit)
+                            let mut successor_parent = right;
+                            if successor_parent.left.is_none() {
+                                // Le sous-arbre droit n'a pas d'enfant gauche
+                                successor_parent.left = Some(left);
+                                Some(successor_parent)
+                            } else {
+                                // Trouver le minimum du sous-arbre droit
+                                let mut parent = &mut successor_parent;
+                                while parent.left.as_ref().unwrap().left.is_some() {
+                                    parent = parent.left.as_mut().unwrap();
+                                }
+                                let mut successor = parent.left.take().unwrap();
+                                parent.left = successor.right.take();
+                                successor.left = Some(left);
+                                successor.right = Some(successor_parent);
+                                Some(successor)
+                            }
+                        }
+                    };
+                    return true;
+                } else if cmp == -1 {
+                    // Chercher à gauche
+                    let found = delete_node(&mut current.left, ch);
+                    *node = Some(current);
+                    return found;
+                } else {
+                    // Chercher à droite
+                    let found = delete_node(&mut current.right, ch);
+                    *node = Some(current);
+                    return found;
+                }
+            }
+            false // Noeud non trouvé
+        }
+
+        delete_node(&mut self.racine, ch)
     }
 
     // Chercher un noeud par sa racine et retourner une référence mutable
