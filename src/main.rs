@@ -1,18 +1,7 @@
-// ============================================================================
-// IMPORTANT : MODULE TERMINAL_ADAPTER
-// ============================================================================
-// Le module terminal_adapter contient TOUTES les fonctions spécifiques au
-// terminal Windows. Lors de la migration vers web/mobile :
-// 1. Supprimer : mod terminal_adapter;
-// 2. Supprimer : les imports terminal_adapter::*
-// 3. Remplacer lire_racine_terminal() par réception données API
-// 4. Remplacer afficher_arabe() par affichage HTML direct avec dir="rtl"
-// ============================================================================
-
 mod arbre;
 mod hashing;
 mod morpho_analyzer;
-mod terminal_adapter; // ← À SUPPRIMER pour le web
+mod terminal_adapter;
 
 use arbre::Tree;
 use hashing::Scheme;
@@ -24,18 +13,13 @@ use morpho_analyzer::generer_et_stocker;
 use morpho_analyzer::generer_mot;
 use morpho_analyzer::valider_et_stocker;
 
-// ← À SUPPRIMER pour le web
 use terminal_adapter::{afficher_arabe, lire_ligne_simple, lire_racine_terminal, lire_texte_arabe};
 
-use std::io; // Pour io::stdout()
-
-// Valider qu'un schème contient au moins une lettre morphologique (ف, ع, ل)
-// Un schème valide doit pouvoir générer des dérivés en remplaçant ces lettres
+use std::io;
 fn valider_scheme(nom: &str) -> bool {
     nom.contains('ف') || nom.contains('ع') || nom.contains('ل')
 }
 
-// Afficher le menu principal
 fn afficher_menu() {
     println!();
     println!("╔══════════════════════════════════════════╗");
@@ -59,34 +43,28 @@ fn afficher_menu() {
     println!("║ 16. Quitter                              ║");
     println!("╚══════════════════════════════════════════╝");
     print!("Choix > ");
-    // Forcer l'affichage immédiat du "Choix > "
     use std::io::Write;
     io::stdout().flush().unwrap();
 }
 
 fn main() {
-    // Créer l'arbre (vide au départ)
     let mut arbre = Tree::new();
 
-    // Créer la table de hachage avec les schèmes pré-chargés
     let mut table_schemes: SchemeTable = init_schemes();
 
     println!("Bienvenue dans le Moteur Morphologique Arabe !");
 
-    // Boucle principale du menu
     loop {
         afficher_menu();
         let choix = lire_ligne_simple();
 
         match choix.as_str() {
-            // === 1. Charger racines depuis fichier ===
             "1" => {
                 println!("Entrez le chemin du fichier (ex: racines.txt) :");
                 let chemin = lire_ligne_simple();
                 arbre.charger_depuis_fichier(&chemin);
             }
 
-            // === 2. Ajouter une racine manuellement ===
             "2" => {
                 if let Some(racine) = lire_racine_terminal() {
                     arbre.insert(racine);
@@ -95,7 +73,6 @@ fn main() {
                 }
             }
 
-            // === 3. Chercher une racine dans l'arbre ===
             "3" => {
                 if let Some(racine) = lire_racine_terminal() {
                     let r: String = racine.iter().collect();
@@ -110,7 +87,6 @@ fn main() {
                 }
             }
 
-            // === 4. Supprimer une racine ===
             "4" => {
                 if let Some(racine) = lire_racine_terminal() {
                     let r: String = racine.iter().collect();
@@ -125,7 +101,6 @@ fn main() {
                 }
             }
 
-            // === 5. Prévisualiser famille morphologique ===
             "5" => {
                 if let Some(racine) = lire_racine_terminal() {
                     if !arbre.verify(racine) {
@@ -143,10 +118,8 @@ fn main() {
                 }
             }
 
-            // === 6. Générer un dérivé avec un schème spécifique ===
             "6" => {
                 if let Some(racine) = lire_racine_terminal() {
-                    // Vérifier que la racine existe
                     if !arbre.verify(racine) {
                         let r: String = racine.iter().collect();
                         println!(
@@ -160,14 +133,11 @@ fn main() {
                         println!("Entrez le nom du schème (ex: فاعل) :");
                         let nom_scheme = lire_texte_arabe();
 
-                        // Vérifier que le schème existe
                         if !table_schemes.contains(&nom_scheme) {
                             println!("✗ Schème '{}' non trouvé.", afficher_arabe(&nom_scheme));
                         } else {
-                            // Générer le mot
                             let mot = generer_mot(racine, &nom_scheme);
 
-                            // Stocker dans l'arbre
                             let ok = arbre.ajouter_derive(racine, mot.clone(), nom_scheme.clone());
 
                             if ok {
@@ -184,10 +154,8 @@ fn main() {
                 }
             }
 
-            // === 7. Générer tous les dérivés d'une racine ===
             "7" => {
                 if let Some(racine) = lire_racine_terminal() {
-                    // Vérifier que la racine existe
                     if !arbre.verify(racine) {
                         let r: String = racine.iter().collect();
                         println!(
@@ -199,19 +167,17 @@ fn main() {
                         );
                     } else {
                         generer_et_stocker(&mut arbre, racine, &table_schemes);
-                        // Afficher les dérivés stockés
+
                         afficher_derives_stockes(&mut arbre, racine);
                     }
                 }
             }
 
-            // === 8. Valider un mot ===
             "8" => {
                 println!("Entrez le mot à valider (ex: كاتب) :");
                 let mot = lire_texte_arabe();
 
                 if let Some(racine) = lire_racine_terminal() {
-                    // Vérifier la racine dans l'arbre d'abord
                     if !arbre.verify(racine) {
                         let r: String = racine.iter().collect();
                         println!(
@@ -243,17 +209,14 @@ fn main() {
                 }
             }
 
-            // === 9. Afficher les dérivés stockés d'une racine ===
             "9" => {
                 if let Some(racine) = lire_racine_terminal() {
                     afficher_derives_stockes(&mut arbre, racine);
                 }
             }
 
-            // === 10. Supprimer un dérivé d'une racine ===
             "10" => {
                 if let Some(racine) = lire_racine_terminal() {
-                    // Vérifier que la racine existe
                     if !arbre.verify(racine) {
                         let r: String = racine.iter().collect();
                         println!(
@@ -261,13 +224,11 @@ fn main() {
                             afficher_arabe(&r)
                         );
                     } else {
-                        // Afficher d'abord les dérivés existants
                         afficher_derives_stockes(&mut arbre, racine);
 
                         println!("\nEntrez le mot dérivé à supprimer (ex: كاتب) :");
                         let mot = lire_texte_arabe();
 
-                        // Chercher le nœud et supprimer le dérivé
                         if let Some(noeud) = arbre.chercher_noeud(racine) {
                             if noeud.supprimer_derive(&mot) {
                                 println!(
@@ -285,17 +246,14 @@ fn main() {
                 }
             }
 
-            // === 11. Afficher l'arbre complet ===
             "11" => {
                 arbre.afficher();
             }
 
-            // === 12. Afficher les schèmes ===
             "12" => {
                 table_schemes.display();
             }
 
-            // === 13. Ajouter un schème ===
             "13" => {
                 println!("Entrez le nom du schème (ex: فاعل) :");
                 let nom = lire_texte_arabe();
@@ -326,7 +284,6 @@ fn main() {
                 }
             }
 
-            // === 14. Modifier un schème ===
             "14" => {
                 println!("Entrez le nom du schème à modifier (ex: فاعل) :");
                 let nom = lire_texte_arabe();
@@ -355,7 +312,6 @@ fn main() {
                         println!("Nouvelle description :");
                         let description = lire_ligne_simple();
 
-                        // Si le nom change, supprimer l'ancien
                         if nom_final != nom {
                             table_schemes.delete(&nom);
                         }
@@ -373,7 +329,6 @@ fn main() {
                 }
             }
 
-            // === 15. Supprimer un schème ===
             "15" => {
                 println!("Entrez le nom du schème à supprimer (ex: فاعل) :");
                 let nom = lire_texte_arabe();
@@ -384,13 +339,11 @@ fn main() {
                 }
             }
 
-            // === 16. Quitter ===
             "16" => {
                 println!("Au revoir !");
                 break;
             }
 
-            // Choix invalide
             _ => {
                 println!("Choix invalide. Tapez un nombre entre 1 et 16.");
             }

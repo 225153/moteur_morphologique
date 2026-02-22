@@ -3,13 +3,12 @@ pub struct Derive {
     pub schema: String,
 }
 
-// Pour lire un fichier
 use std::fs;
 
 pub struct RacineNode {
     pub racine: [char; 3],
-    pub derives: Vec<Derive>, // liste des mots dérivés validés
-    pub frequence: u32,       // nombre de dérivés stockés
+    pub derives: Vec<Derive>,
+    pub frequence: u32,
     pub left: Option<Box<RacineNode>>,
     pub right: Option<Box<RacineNode>>,
 }
@@ -38,22 +37,20 @@ impl RacineNode {
     pub fn new(racine: [char; 3]) -> Self {
         RacineNode {
             racine,
-            derives: Vec::new(), // liste vide au début
-            frequence: 0,        // aucun dérivé au début
+            derives: Vec::new(),
+            frequence: 0,
             left: None,
             right: None,
         }
     }
 
-    // Ajouter un dérivé validé à ce nœud
     pub fn ajouter_derive(&mut self, mot: String, schema: String) {
-        // Vérifier si ce dérivé existe déjà (éviter les doublons)
         for d in &self.derives {
             if d.mot == mot {
-                return; // déjà présent, on ne fait rien
+                return;
             }
         }
-        // Ajouter le nouveau dérivé
+
         self.derives.push(Derive {
             mot: mot,
             schema: schema,
@@ -61,18 +58,15 @@ impl RacineNode {
         self.frequence = self.frequence + 1;
     }
 
-    // Supprimer un dérivé spécifique de ce nœud
     pub fn supprimer_derive(&mut self, mot: &str) -> bool {
-        // Chercher le dérivé par son mot
         if let Some(pos) = self.derives.iter().position(|d| d.mot == mot) {
             self.derives.remove(pos);
             self.frequence = self.frequence - 1;
             return true;
         }
-        false // Dérivé non trouvé
+        false
     }
 
-    // Afficher tous les dérivés de cette racine
     pub fn afficher_derives(&self) {
         let r: String = self.racine.iter().collect();
         let r_display: String = r.chars().rev().collect();
@@ -84,15 +78,11 @@ impl RacineNode {
         }
     }
 
-    // Parcours in-order : gauche → nœud courant → droite
-    // Affiche les racines triées dans l'ordre alphabétique arabe
     pub fn afficher_in_order(&self) {
-        // 1) D'abord, afficher tout le sous-arbre gauche
         if let Some(gauche) = &self.left {
             gauche.afficher_in_order();
         }
 
-        // 2) Ensuite, afficher le nœud courant
         let r: String = self.racine.iter().collect();
         let r_display: String = r.chars().rev().collect();
         if self.frequence > 0 {
@@ -101,7 +91,6 @@ impl RacineNode {
             println!("  {}", r_display);
         }
 
-        // 3) Enfin, afficher tout le sous-arbre droit
         if let Some(droite) = &self.right {
             droite.afficher_in_order();
         }
@@ -167,28 +156,22 @@ impl Tree {
         self.racine.as_mut().unwrap().insert_node(ch);
     }
 
-    // Supprimer une racine de l'arbre
     pub fn delete(&mut self, ch: [char; 3]) -> bool {
-        // Fonction auxiliaire récursive pour supprimer un noeud
         fn delete_node(node: &mut Option<Box<RacineNode>>, ch: [char; 3]) -> bool {
             if let Some(mut current) = node.take() {
                 let cmp = morphologic_cmp(current.racine, ch);
 
                 if cmp == 0 {
-                    // Noeud trouvé, gérer les 3 cas de suppression
                     *node = match (current.left.take(), current.right.take()) {
-                        (None, None) => None,               // Cas 1: aucun enfant
-                        (Some(left), None) => Some(left),   // Cas 2: uniquement enfant gauche
-                        (None, Some(right)) => Some(right), // Cas 2: uniquement enfant droit
+                        (None, None) => None,
+                        (Some(left), None) => Some(left),
+                        (None, Some(right)) => Some(right),
                         (Some(left), Some(right)) => {
-                            // Cas 3: deux enfants - remplacer par le successeur (min du sous-arbre droit)
                             let mut successor_parent = right;
                             if successor_parent.left.is_none() {
-                                // Le sous-arbre droit n'a pas d'enfant gauche
                                 successor_parent.left = Some(left);
                                 Some(successor_parent)
                             } else {
-                                // Trouver le minimum du sous-arbre droit
                                 let mut parent = &mut successor_parent;
                                 while parent.left.as_ref().unwrap().left.is_some() {
                                     parent = parent.left.as_mut().unwrap();
@@ -203,92 +186,72 @@ impl Tree {
                     };
                     return true;
                 } else if cmp == -1 {
-                    // Chercher à gauche
                     let found = delete_node(&mut current.left, ch);
                     *node = Some(current);
                     return found;
                 } else {
-                    // Chercher à droite
                     let found = delete_node(&mut current.right, ch);
                     *node = Some(current);
                     return found;
                 }
             }
-            false // Noeud non trouvé
+            false
         }
 
         delete_node(&mut self.racine, ch)
     }
 
-    // Chercher un noeud par sa racine et retourner une référence mutable
-    // On en a besoin pour pouvoir ajouter des dérivés à un noeud
     pub fn chercher_noeud(&mut self, ch: [char; 3]) -> Option<&mut RacineNode> {
-        // Commencer à la racine de l'arbre
         let mut courant = self.racine.as_mut();
 
         while let Some(noeud) = courant {
             let cmp = morphologic_cmp(noeud.racine, ch);
             if cmp == 0 {
-                return Some(noeud); // trouvé !
+                return Some(noeud);
             } else if cmp == -1 {
-                courant = noeud.left.as_mut(); // aller à gauche
+                courant = noeud.left.as_mut();
             } else {
-                courant = noeud.right.as_mut(); // aller à droite
+                courant = noeud.right.as_mut();
             }
         }
-        None // pas trouvé
+        None
     }
 
-    // Ajouter un dérivé à une racine donnée (cherche le noeud puis ajoute)
     pub fn ajouter_derive(&mut self, ch: [char; 3], mot: String, schema: String) -> bool {
-        // D'abord on cherche le noeud de cette racine
         let noeud = self.chercher_noeud(ch);
         match noeud {
             Some(n) => {
                 n.ajouter_derive(mot, schema);
-                true // succès
+                true
             }
-            None => false, // racine non trouvée dans l'arbre
+            None => false,
         }
     }
 
-    // Charger des racines depuis un fichier texte
-    // Le fichier contient une racine par ligne, format : "ك ت ب"
-    // Retourne le nombre de racines chargées
     pub fn charger_depuis_fichier(&mut self, chemin: &str) -> u32 {
-        // Étape 1 : Lire tout le contenu du fichier
         let contenu = fs::read_to_string(chemin);
 
-        // Étape 2 : Vérifier si la lecture a réussi
         let texte = match contenu {
-            Ok(t) => t, // lecture OK, on récupère le texte
+            Ok(t) => t,
             Err(e) => {
                 println!("Erreur lecture fichier '{}': {}", chemin, e);
-                return 0; // on retourne 0 racines chargées
+                return 0;
             }
         };
 
         let mut compteur: u32 = 0;
 
-        // Étape 3 : Parcourir le fichier ligne par ligne
         for ligne in texte.lines() {
-            // Ignorer les lignes vides
             let ligne = ligne.trim();
             if ligne.is_empty() {
                 continue;
             }
 
-            // Étape 4 : Extraire les 3 caractères arabes de la ligne
-            // Format attendu : "ك ت ب" (3 caractères séparés par des espaces)
-            let chars: Vec<char> = ligne
-                .chars() // itérer sur chaque caractère
-                .filter(|c| !c.is_whitespace()) // enlever les espaces
-                .collect(); // collecter dans un vecteur
+            let chars: Vec<char> = ligne.chars().filter(|c| !c.is_whitespace()).collect();
 
-            // Vérifier qu'on a bien 3 caractères
             if chars.len() == 3 {
                 let racine: [char; 3] = [chars[0], chars[1], chars[2]];
-                self.insert(racine); // insérer dans l'arbre (les doublons sont ignorés)
+                self.insert(racine);
                 compteur = compteur + 1;
             } else {
                 let ligne_display: String = ligne.chars().rev().collect();
@@ -300,7 +263,6 @@ impl Tree {
         compteur
     }
 
-    // Afficher toutes les racines de l'arbre (parcours in-order)
     pub fn afficher(&self) {
         if self.racine.is_none() {
             println!("L'arbre est vide.");
